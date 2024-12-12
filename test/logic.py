@@ -142,20 +142,10 @@ def decide_trade(symbol, start_price, current_price):
 
 # Example usage
 if __name__ == "__main__":
-    # Example:
-    # Positive scenario:
-    # start_price = 1.0000
-    # Move price below start to get pip_difference < 0 => positive direction
-    # 0.9990 -> threshold_no ~0.67 no threshold reached yet
-    # 0.9982 -> threshold_no ~1.2 threshold reached & trade placed
-    # Move back to 0.9993 -> threshold_no ~0.47 hedging triggered
-
     eur = {'symbol': 'EURUSD', 'pip_size': 0.0001, 'threshold': 15}
     start_price = 1.0000
     test_prices = [1.0000, 0.9990, 0.9982, 0.9993]
 
-    # Clear old data if you want a clean slate
-    # delete_symbol_data('EURUSD')
 
     for p in test_prices:
         result, state = decide_trade(eur, start_price, p)
