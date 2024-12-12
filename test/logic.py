@@ -146,7 +146,6 @@ if __name__ == "__main__":
     start_price = 1.0000
     test_prices = [1.0000, 0.9990, 0.9982, 0.9993]
 
-
     for p in test_prices:
         result, state = decide_trade(eur, start_price, p)
         print("Current Price:", p)
