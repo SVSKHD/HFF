@@ -1,5 +1,6 @@
 from db import save_symbol_data, get_symbol_data, update_symbol_data, delete_symbol_data, clear_all_keys
 
+
 def pip_difference(symbol, start_price, current_price):
     """
     Calculate the pip difference between start_price and current_price,
@@ -8,6 +9,7 @@ def pip_difference(symbol, start_price, current_price):
     pip_diff = start_price - current_price
     formatted_pip_difference = pip_diff / symbol['pip_size']
     return {'symbol': symbol['symbol'], 'pip_difference': round(formatted_pip_difference, 2)}
+
 
 def threshold_no(symbol, pip_diff):
     """
@@ -18,6 +20,7 @@ def threshold_no(symbol, pip_diff):
         return {'symbol': symbol['symbol'], 'threshold_no': None}
     threshold_val = pip_diff / symbol['threshold']
     return {'symbol': symbol['symbol'], 'threshold_no': round(threshold_val, 2)}
+
 
 def check_threshold_levels(threshold_no):
     """
@@ -35,6 +38,7 @@ def check_threshold_levels(threshold_no):
         thresholds_reached = abs(int(threshold_no))
 
     return {'thresholds_reached': thresholds_reached}
+
 
 def combine_logic(symbol, start_price, current_price):
     """
@@ -54,6 +58,7 @@ def combine_logic(symbol, start_price, current_price):
         'thresholds_reached': thresholds_info['thresholds_reached']
     }
     return combined
+
 
 def decide_trade(symbol, start_price, current_price):
     """
