@@ -2,20 +2,12 @@ from db import save_symbol_data, get_symbol_data, update_symbol_data, delete_sym
 
 
 def pip_difference(symbol, start_price, current_price):
-    """
-    Calculate the pip difference between start_price and current_price,
-    and convert it to pips based on symbol's pip_size.
-    """
     pip_diff = start_price - current_price
     formatted_pip_difference = pip_diff / symbol['pip_size']
     return {'symbol': symbol['symbol'], 'pip_difference': round(formatted_pip_difference, 2)}
 
 
 def threshold_no(symbol, pip_diff):
-    """
-    Calculate how many threshold increments have been crossed based on pip_diff.
-    If pip_diff == 0, return None.
-    """
     if pip_diff == 0:
         return {'symbol': symbol['symbol'], 'threshold_no': None}
     threshold_val = pip_diff / symbol['threshold']
@@ -23,11 +15,6 @@ def threshold_no(symbol, pip_diff):
 
 
 def check_threshold_levels(threshold_no):
-    """
-    Determine how many full threshold increments have been crossed.
-    threshold_no = 2.3 -> thresholds_reached = 2
-    threshold_no = -2.7 -> thresholds_reached = 2
-    """
     thresholds_reached = 0
     if threshold_no is None or threshold_no == 0:
         return {'thresholds_reached': thresholds_reached}
@@ -41,12 +28,6 @@ def check_threshold_levels(threshold_no):
 
 
 def combine_logic(symbol, start_price, current_price):
-    """
-    Combine all logic to get:
-    - pip_difference
-    - threshold_no
-    - thresholds_reached
-    """
     data = pip_difference(symbol, start_price, current_price)
     threshold_data = threshold_no(symbol, data['pip_difference'])
     thresholds_info = check_threshold_levels(threshold_data['threshold_no'])
