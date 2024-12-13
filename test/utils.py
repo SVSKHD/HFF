@@ -3,7 +3,7 @@ import MetaTrader5 as mt5
 import logging
 from notifications import send_limited_message, send_discord_message_async
 from datetime import datetime
-from storage_state import save_symbol_data
+from db import save_symbol_data
 
 
 async def log_error_and_notify(message):

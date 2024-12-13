@@ -1,5 +1,5 @@
-from datetime import timezone, datetime
-import Metatrader5 as mt5
+from datetime import timezone, datetime, timedelta
+import MetaTrader5 as mt5
 
 
 def fetch_price(symbol_data, fetch_type):
@@ -12,7 +12,7 @@ def fetch_price(symbol_data, fetch_type):
     # Get the current date and time
     current_date = datetime.now()
     day_of_week = current_date.strftime("%A")
-    friday_timestamp = None
+    target_timestamp = None
 
     if fetch_type == 'current':
         # Ensure MT5 initialization
@@ -31,31 +31,37 @@ def fetch_price(symbol_data, fetch_type):
             return None
 
     elif fetch_type == 'start':
-        # Calculate the most recent Friday
+        # Determine target timestamp
         if day_of_week in ['Sunday', 'Saturday', 'Monday']:
+            # Calculate the most recent Friday
             days_since_friday = (current_date.weekday() - 4) % 7
             last_friday = current_date - timedelta(days=days_since_friday)
-        else:
-            last_friday = current_date - timedelta(days=(current_date.weekday() - 4))
 
-        # Add specific time to last Friday (23:58:59) in the server timezone
-        last_friday_with_time = datetime(
-            last_friday.year, last_friday.month, last_friday.day,
-            23, 58, 59, tzinfo=server_timezone
-        )
-        formatted_date = last_friday_with_time.strftime("%Y-%m-%d %H:%M:%S")
-        friday_timestamp = int(last_friday_with_time.timestamp())
+            # Add specific time to last Friday (23:58:59) in the server timezone
+            target_time = datetime(
+                last_friday.year, last_friday.month, last_friday.day,
+                23, 58, 59, tzinfo=server_timezone
+            )
+        else:
+            # Use the present day's date at 12:00 AM
+            target_time = datetime(
+                current_date.year, current_date.month, current_date.day,
+                0, 0, 0, tzinfo=server_timezone
+            )
+
+        formatted_date = target_time.strftime("%Y-%m-%d %H:%M:%S")
+        target_timestamp = int(target_time.timestamp())
 
         # Ensure MT5 initialization
         if not mt5.initialize():
             print("MetaTrader5 initialization failed.")
             return None
 
-        # Fetch price data for the last Friday's timestamp
-        ticks = mt5.copy_ticks_from(symbol_name, friday_timestamp, 1, mt5.COPY_TICKS_INFO)
+        # Fetch price data for the target timestamp
+        ticks = mt5.copy_ticks_from(symbol_name, target_timestamp, 1, mt5.COPY_TICKS_INFO)
         if ticks is not None and len(ticks) > 0:
             start_price = ticks['bid'][0]  # Accessing the 'bid' field correctly
-            print(f"Fetching start price for {symbol_name} on last Friday ({formatted_date}): {start_price}")
+            # print(f"Fetching start price for {symbol_name} at {formatted_date}: {start_price}")
             return start_price
         else:
             print(f"Failed to fetch start price for {symbol_name}. Ensure sufficient tick data is available.")
