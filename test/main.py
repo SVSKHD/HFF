@@ -10,13 +10,13 @@ async def main():
     today = datetime.now()
     connect =  await connect_mt5()
     if connect:
-        if 0 <= today.hour <=13:
+        if 0 <= today.hour < 23:
             print("Trading is allowed")
             for symbol in symbols_config:
                 start_price=fetch_price(symbol, "start")
                 current_price=fetch_price(symbol, "current")
                 decide_trade(symbol, start_price, current_price)
-                print(f"Start price for {symbol['symbol']} is {start_price} current is {current_price} difference is {current_price-start_price}")
+                print(f"Start price for {symbol['symbol']} is {start_price} current is {current_price} difference is {current_price-start_price/symbol['threshold']}")
         else:
             print(f"Monitoring {connect}")
 

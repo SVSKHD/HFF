@@ -1,10 +1,10 @@
 import asyncio
 import MetaTrader5 as mt5
 import logging
-from notifications import send_limited_message, send_discord_message_async
+from notifications import send_limited_message, send_discord_message_async, send_discord_message_type
 from datetime import datetime
 from db import save_symbol_data
-
+import asyncio
 
 async def log_error_and_notify(message):
     logging.error(message)
@@ -41,13 +41,17 @@ async def get_open_positions(symbol):
     """Fetch open positions for a symbol and return position details consistently."""
     symbol_name = symbol["symbol"]
     positions = await asyncio.to_thread(mt5.positions_get, symbol=symbol_name)
+    print("positions", positions)
+
+    if not positions:
+        message = f"No positions exist for {symbol_name} at {datetime.now()}"
+        await send_discord_message_type(message, "error", True)
 
     open_positions = {
         "positions_exist": len(positions) > 0,
         "no_of_positions": len(positions) if positions else 0
     }
 
-    if not positions:
-        await send_limited_message(symbol_name, f"No positions exist for {symbol_name} at {datetime.now()}")
-
+    print(open_positions)
     return open_positions
+
