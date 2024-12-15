@@ -5,17 +5,19 @@ from config import symbols_config
 from logic import decide_trade
 import asyncio
 from db import get_symbol_data, clear_all_keys
+from trade_place import place_order, close_trades_by_symbol
+import logging
 
 
-def execute_trade(symbol):
+async def execute_trade(symbol):
     """
-    Executes trade logic based on thresholds for the given symbol.
+    Executes trade logic asynchronously based on thresholds for the given symbol.
     """
     symbol_name = symbol['symbol']
     symbol_data = get_symbol_data(symbol_name)
 
     if not symbol_data:
-        print(f"No data available for {symbol_name}")
+        logging.warning(f"No data available for {symbol_name}")
         return  # Exit if no symbol data is available
 
     # Retrieve necessary fields from symbol_data
@@ -24,65 +26,85 @@ def execute_trade(symbol):
     hedging = symbol_data.get('hedging', False)
 
     if thresholds_no is None:
-        print(f"Missing thresholds_no for {symbol_name}")
+        logging.error(f"Missing thresholds_no for {symbol_name}")
         return  # Exit if thresholds_no is missing
 
-    print(f"Processing {symbol_name}: thresholds_no={thresholds_no}, threshold_reached={threshold_reached}, hedging={hedging}")
+    logging.info(f"Processing {symbol_name}: thresholds_no={thresholds_no}, threshold_reached={threshold_reached}, hedging={hedging}")
 
-    # Trade execution logic for positive thresholds
-    if thresholds_no > 1.2:
-        print(f"Threshold exceeded for {symbol_name} - Placing buy order.")
-        # place_order(symbol, symbol_data)
-    elif 1 <= thresholds_no <= 1.2:
-        print(f"Placing trade for {symbol_name} in positive range (1 to 1.2).")
-        # place_order(symbol, symbol_data)
-
-    # Trade execution logic for negative thresholds
-    if thresholds_no < -1.2:
-        print(f"Threshold exceeded for {symbol_name} - Placing sell order.")
-        # place_order(symbol, symbol_data)
-    elif -1.2 <= thresholds_no <= -1:
-        print(f"Placing trade for {symbol_name} in negative range (-1.2 to -1).")
-        # place_order(symbol, symbol_data)
-
-    # Closing trades at extreme thresholds
+    # Prevent new trades if thresholds_no has already crossed ±2
     if thresholds_no >= 2 or thresholds_no <= -2:
-        print(f"Threshold exceeded for {symbol_name} - Closing trades.")
-        # close_trade_symbol(symbol)
+        logging.info(f"Threshold for {symbol_name} has already crossed ±2. No new trades will be placed.")
+        await close_trades_by_symbol(symbol)  # Close trades if needed, but do not place new ones
+        return
 
-    # Hedging logic
-    if threshold_reached and hedging:  # Ensure hedging is enabled and threshold is reached
-        if thresholds_no >= 0.95:
-            print(f"Closing trades for {symbol_name} due to hedging and thresholds_no >= 0.95.")
-            # close_trade_symbol(symbol)
-        elif thresholds_no <= -0.95:
-            print(f"Closing trades for {symbol_name} due to hedging and thresholds_no <= -0.95.")
-            # close_trade_symbol(symbol)
-        elif 0.5 <= thresholds_no < 1:
-            print(f"Hedging triggered for {symbol_name} - Closing trades on positive threshold.")
-            # place_trade(symbol)
-        elif -1 < thresholds_no <= -0.5:
-            print(f"Hedging triggered for {symbol_name} - Closing trades on negative threshold.")
-            # place_trade(symbol)
+    # Trade execution logic
+    try:
+        if thresholds_no > 1.2:
+            logging.info(f"Threshold exceeded for {symbol_name} - Placing buy order.")
+            await place_order(symbol, 'sell', symbol['lot_size'], False)
+
+        elif 1 <= thresholds_no <= 1.2:
+            logging.info(f"Placing trade for {symbol_name} in positive range (1 to 1.2).")
+            await place_order(symbol, 'sell', symbol['lot_size'], False)
+
+        if thresholds_no < -1.2:
+            logging.info(f"Threshold exceeded for {symbol_name} - Placing sell order.")
+            await place_order(symbol, 'buy', symbol['lot_size'], False)
+        elif -1.2 <= thresholds_no <= -1:
+            logging.info(f"Placing trade for {symbol_name} in negative range (-1.2 to -1).")
+            await place_order(symbol, 'buy', symbol['lot_size'], False)
+
+        # Hedging logic
+        if threshold_reached and hedging:
+            if thresholds_no >= 0.95:
+                logging.info(f"Closing trades for {symbol_name} due to hedging and thresholds_no >= 0.95.")
+                await close_trades_by_symbol(symbol)
+            elif thresholds_no <= -0.95:
+                logging.info(f"Closing trades for {symbol_name} due to hedging and thresholds_no <= -0.95.")
+                await close_trades_by_symbol(symbol)
+    except Exception as e:
+        logging.error(f"Error executing trade for {symbol_name}: {e}")
 
 
+async def monitor_trading():
+    """
+    Continuously monitors the market and executes trades every minute.
+    """
+    while True:
+        today = datetime.now()
+        connect = await connect_mt5()
 
-async def main():
-    today = datetime.now()
-    connect =  await connect_mt5()
-    if connect:
-        if 0 <= today.hour < 23:
-            print("Trading is allowed")
-            for symbol in symbols_config:
-                start_price=fetch_price(symbol, "start")
-                current_price=fetch_price(symbol, "current")
-                decide_trade(symbol, start_price, current_price)
-                print(f"Start price for {symbol['symbol']} is {start_price} current is {current_price} difference is {current_price-start_price/symbol['threshold']}")
+        if connect:
+            logging.info("Connected to MT5. Starting trading loop.")
+            if 0 <= today.hour < 23:
+                for symbol in symbols_config:
+                    try:
+                        start_price = fetch_price(symbol, "start")
+                        current_price = fetch_price(symbol, "current")
+
+                        if start_price is None or current_price is None:
+                            logging.warning(f"Price data unavailable for {symbol['symbol']}. Skipping.")
+                            continue
+
+                        logging.info(
+                            f"Start price for {symbol['symbol']} is {start_price}, current is {current_price}, "
+                            f"difference is {current_price - start_price / symbol['threshold']}."
+                        )
+
+                        decide_trade(symbol, start_price, current_price)
+                        await execute_trade(symbol)  # Use await for async execution
+                        logging.info(f"Finished processing {symbol['symbol']}.")
+                    except Exception as e:
+                        logging.error(f"Error processing symbol {symbol['symbol']}: {e}")
+            else:
+                clear_all_keys()
+                logging.info("Outside trading hours. Cleared all keys.")
 
         else:
-            clear_all_keys()()
-            print(f"Monitoring {connect}")
+            logging.error("Failed to connect to MT5.")
+
+        await asyncio.sleep(1)  # Wait for 1 minute before next iteration
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(monitor_trading())

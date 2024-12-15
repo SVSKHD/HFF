@@ -13,7 +13,9 @@ from trade_place import place_order, close_trades_by_symbol  # Ensure this file 
 # if __name__ == "__main__":
 #     asyncio.run(main())
 
-btc=get_symbol_data('BTCUSD')
-print(btc)
-usd=get_symbol_data('EURUSD')
-print(usd)
+# btc=get_symbol_data('BTCUSD')
+# print(btc)
+# usd=get_symbol_data('EURUSD')
+# print(usd)
+
+clear_all_keys()
