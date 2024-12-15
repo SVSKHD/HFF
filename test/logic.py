@@ -70,7 +70,10 @@ def decide_trade(symbol, start_price, current_price):
             'negative_threshold': False,
             'trades_placed': False,
             'hedging': False,
-            'direction': direction
+            'direction': direction,
+            'thresholds_no': threshold_no_val,
+            'start_price': start_price,
+            'current_price': current_price
         }
         save_symbol_data(symbol_name, current_data)
     else:
@@ -84,7 +87,10 @@ def decide_trade(symbol, start_price, current_price):
             'negative_threshold': current_data.get('negative_threshold', False),
             'trades_placed': current_data.get('trades_placed', False),
             'hedging': current_data.get('hedging', False),
-            'direction': direction  # Always update direction
+            'direction': direction,  # Always update direction
+            'thresholds_no': threshold_no_val,
+            'start_price': start_price,
+            'current_price': current_price
         }
 
     # Threshold logic
@@ -140,19 +146,19 @@ def decide_trade(symbol, start_price, current_price):
     return result, current_data
 
 
-# # Example usage
-# if __name__ == "__main__":
-#     eur = {'symbol': 'EURUSD', 'pip_size': 0.0001, 'threshold': 15}
-#     start_price = 1.0000
-#     test_prices = [1.0000, 0.9990, 0.9982, 0.9993]
-#
-#     for p in test_prices:
-#         result, state = decide_trade(eur, start_price, p)
-#         print("Current Price:", p)
-#         print("Result:", result)
-#         print("State:", state)
-#         print("-" * 50)
-#
-#     eurdb = get_symbol_data('EURUSD')
-#     print("db", eurdb)
-#     clear_all_keys()
+# Example usage
+if __name__ == "__main__":
+    eur = {'symbol': 'EURUSD', 'pip_size': 0.0001, 'threshold': 15}
+    start_price = 1.0000
+    test_prices = [1.0000, 0.9990, 0.9982, 0.9993]
+
+    for p in test_prices:
+        result, state = decide_trade(eur, start_price, p)
+        print("Current Price:", p)
+        print("Result:", result)
+        print("State:", state)
+        print("-" * 50)
+
+    eurdb = get_symbol_data('EURUSD')
+    print("db", eurdb)
+# clear_all_keys()
