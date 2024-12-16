@@ -73,6 +73,7 @@ def get_symbol_data(key):
 
 # Update data in Redis
 def update_symbol_data(key, new_data):
+    print("update", key, new_data)
     if redis_client:
         try:
             existing_data = get_symbol_data(key)

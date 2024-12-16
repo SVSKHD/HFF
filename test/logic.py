@@ -141,7 +141,7 @@ def decide_trade(symbol, start_price, current_price):
             current_data['hedging'] = False
 
     # Save the updated state back to DB
-    save_symbol_data(symbol_name, current_data)
+    update_symbol_data(symbol_name, current_data)
 
     return result, current_data
 
@@ -150,7 +150,19 @@ def decide_trade(symbol, start_price, current_price):
 if __name__ == "__main__":
     eur = {'symbol': 'EURUSD', 'pip_size': 0.0001, 'threshold': 15}
     start_price = 1.0000
-    test_prices = [1.0000, 0.9990, 0.9982, 0.9993]
+    test_prices = [
+       1.0000,
+       1.0015,
+       1.0020,
+       1.0025,
+       1.0030,
+        1.0035,
+        1.0040,
+        1.0045,
+        1.0050,
+        1.0055,
+        1.0060,
+    ]
 
     for p in test_prices:
         result, state = decide_trade(eur, start_price, p)

@@ -15,6 +15,7 @@ async def execute_trade(symbol):
     """
     symbol_name = symbol['symbol']
     symbol_data = get_symbol_data(symbol_name)
+    print("symbol data", symbol_data)
 
     if not symbol_data:
         logging.warning(f"No data available for {symbol_name}")
@@ -31,39 +32,35 @@ async def execute_trade(symbol):
 
     logging.info(f"Processing {symbol_name}: thresholds_no={thresholds_no}, threshold_reached={threshold_reached}, hedging={hedging}")
 
-    # Prevent new trades if thresholds_no has already crossed ±2
-    if thresholds_no >= 2 or thresholds_no <= -2:
-        logging.info(f"Threshold for {symbol_name} has already crossed ±2. No new trades will be placed.")
-        await close_trades_by_symbol(symbol)  # Close trades if needed, but do not place new ones
+    # Prevent new trades if thresholds_no has already crossed ±2 and hedging is not enabled
+    if (thresholds_no >= 2 or thresholds_no <= -2) and not hedging:
+        logging.info(f"Threshold for {symbol_name} has already crossed ±2. No new trades will be placed, but trades may be closed.")
+        await close_trades_by_symbol(symbol)  # Close trades if hedging is not enabled
         return
 
     # Trade execution logic
     try:
-        if thresholds_no > 1.2:
-            logging.info(f"Threshold exceeded for {symbol_name} - Placing buy order.")
-            await place_order(symbol, 'sell', symbol['lot_size'], False)
+        # Place trades only within specific ranges
+        if -1.2 <= thresholds_no <= -1:
+            logging.info(f"Placing trade for {symbol_name} in negative range (-1.2 to -1).")
+            await place_order(symbol, 'buy', symbol['lot_size'], False)
 
         elif 1 <= thresholds_no <= 1.2:
             logging.info(f"Placing trade for {symbol_name} in positive range (1 to 1.2).")
             await place_order(symbol, 'sell', symbol['lot_size'], False)
 
-        if thresholds_no < -1.2:
-            logging.info(f"Threshold exceeded for {symbol_name} - Placing sell order.")
-            await place_order(symbol, 'buy', symbol['lot_size'], False)
-        elif -1.2 <= thresholds_no <= -1:
-            logging.info(f"Placing trade for {symbol_name} in negative range (-1.2 to -1).")
-            await place_order(symbol, 'buy', symbol['lot_size'], False)
-
-        # Hedging logic
-        if threshold_reached and hedging:
-            if thresholds_no >= 0.95:
+        # Hedging logic (trigger only outside the trade placement range)
+        elif threshold_reached and hedging:
+            if thresholds_no >= 0.95 and thresholds_no < 1:
                 logging.info(f"Closing trades for {symbol_name} due to hedging and thresholds_no >= 0.95.")
                 await close_trades_by_symbol(symbol)
-            elif thresholds_no <= -0.95:
+            elif thresholds_no <= -0.95 and thresholds_no > -1:
                 logging.info(f"Closing trades for {symbol_name} due to hedging and thresholds_no <= -0.95.")
                 await close_trades_by_symbol(symbol)
+
     except Exception as e:
         logging.error(f"Error executing trade for {symbol_name}: {e}")
+
 
 
 async def monitor_trading():
@@ -76,7 +73,7 @@ async def monitor_trading():
 
         if connect:
             logging.info("Connected to MT5. Starting trading loop.")
-            if 0 <= today.hour < 23:
+            if 0 <= today.hour < 12:
                 for symbol in symbols_config:
                     try:
                         start_price = fetch_price(symbol, "start")
