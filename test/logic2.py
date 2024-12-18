@@ -1,3 +1,7 @@
+# import MetaTrader5 as mt5
+from db import save_symbol_data, update_symbol_data, get_symbol_data
+
+
 def calculate_pip_difference(symbol, start_price, current_price):
     """
     Calculates the pip difference between start_price and current_price.
@@ -59,6 +63,21 @@ def calculate_no_thresholds(symbol, start_price, current_price):
     }
 
 
+# def check_and_hedge(symbol):
+#     hedging = False
+#     if not symbol:
+#         return None
+#     trades = mt5.positions_get(symbol=symbol)
+#     if len(trades)>0:
+#         hedging = True
+
+
+def log_trade_decision(data):
+    print("Trade Decision Data:")
+    for key, value in data.items():
+        print(f"{key}: {value}")
+
+
 def decide_trade_and_thresholds(symbol, start_price, current_price):
     symbol_threshold_data = calculate_no_thresholds(symbol, start_price, current_price)
 
@@ -71,8 +90,6 @@ def decide_trade_and_thresholds(symbol, start_price, current_price):
     first_negative_threshold = direction == "negative" and threshold_no is not None and abs(threshold_no) >= 1
     second_positive_threshold = direction == "positive" and threshold_no is not None and abs(threshold_no) >= 2
     second_negative_threshold = direction == "negative" and threshold_no is not None and abs(threshold_no) >= 2
-
-
 
     # Prepare data for logging and analysis
     data = {
@@ -104,18 +121,25 @@ def decide_trade_and_thresholds(symbol, start_price, current_price):
     print(f"Negative Hedging Activated: {data['negative_hedging']}")
     print(f"Direction: {data['direction']}")
 
+    stored_data = get_symbol_data(symbol['symbol'])
+    if stored_data != data:  # Update only if data has changed
+        update_symbol_data(symbol['symbol'], data)
+
+    # Logging for debugging
+    log_trade_decision(data)
     return data
+
 
 # Test the function
 eur = {'symbol': 'EURUSD', 'pip_size': 0.0001, 'threshold': 15}
-xag = {'symbol':'XAGUSD', 'pip_size': 0.01, 'threshold': 20}
-xau = {'symbol':'XAUUSD', 'pip_size': 0.01, 'threshold': 700}
+xag = {'symbol': 'XAGUSD', 'pip_size': 0.01, 'threshold': 20}
+xau = {'symbol': 'XAUUSD', 'pip_size': 0.01, 'threshold': 700}
 
 # Test with varying prices to validate logic
 positive_prices = [
     1.1000,  # Neutral, no threshold crossed
     1.1015,  # Slight positive movement
-    1.10075, # Slight positive movement (hedging)
+    1.10075,  # Slight positive movement (hedging)
     1.1030,  # Threshold crossed (positive)
     1.1045,  # Negative threshold crossed,  # Second positive threshold crossed
 ]
@@ -127,14 +151,13 @@ negative_prices = [
     1.0955,  # Positive threshold crossed,  # Second negative threshold crossed
 ]
 
-
 xag_positive_prices = [
     30.20,
     30.40,
     30.60,
     30.80,
     31.00
-    ]
+]
 
 xag_start_price = 30.00
 
@@ -155,12 +178,9 @@ xag_hedging_case = [
     29.40,  # Second negative threshold crossed
 ]
 
-
-
-
 # // Gold Case
 
-xau_positive=[
+xau_positive = [
     2600.00,
     2600.50,
     2601.00,
@@ -188,4 +208,3 @@ print("======================================gold positive prices===============
 for price in xau_positive:
     print("\nTesting with Price:")
     decide_trade_and_thresholds(xau, xau_start, price)
-
