@@ -17,7 +17,34 @@ def calculate_pip_difference(symbol, start_price, current_price):
     return {'symbol': symbol['symbol'], 'pip_difference': rounded_pip_difference}
 
 
+def check_and_hedge(symbol):
+    """
+    Checks if there are active positions for the given symbol.
+
+    Args:
+        symbol (str): The trading symbol to check.
+
+    Returns:
+        bool: True if positions exist, False otherwise.
+    """
+    if not symbol:
+        return False
+    trades = mt5.positions_get(symbol=symbol)
+    return len(trades) > 0
+
+
 def calculate_no_thresholds(symbol, start_price, current_price):
+    """
+    Calculate thresholds and determine hedging status based on pip differences.
+
+    Args:
+        symbol (dict): Symbol information, including 'symbol' and 'threshold'.
+        start_price (float): The starting price for calculation.
+        current_price (float): The current price for calculation.
+
+    Returns:
+        dict: Hedging details including direction, thresholds, and hedging status.
+    """
     pip_data = calculate_pip_difference(symbol, start_price, current_price)
     pip_diff = pip_data['pip_difference']
 
@@ -34,22 +61,25 @@ def calculate_no_thresholds(symbol, start_price, current_price):
         }
 
     # Determine direction and threshold number
-    threshold_no = pip_diff / symbol['threshold']
-    direction = "positive" if pip_diff < 0 else "negative"
+    threshold_no = pip_diff / symbol['threshold'] if symbol['threshold'] != 0 else None
+    direction = "positive" if pip_diff > 0 else "negative"
+
+    # Check for active positions
+    hedging = check_and_hedge(symbol['symbol'])
 
     # Initialize hedging flags
     positive_hedging = False
     negative_hedging = False
 
     # Determine hedging conditions
-    if 0 <= threshold_no <= 0.5:
+    if hedging and threshold_no is not None and 0 <= threshold_no <= 0.5:
         print(f"Positive hedging condition met at threshold_no: {threshold_no}")
         positive_hedging = True
-    elif -0.5 <= threshold_no < 0:
+    elif hedging and threshold_no is not None and -0.5 <= threshold_no < 0:
         print(f"Negative hedging condition met at threshold_no: {threshold_no}")
         negative_hedging = True
 
-    # Set the overall hedging flag
+    # Update the overall hedging flag based on positive/negative hedging
     hedging = positive_hedging or negative_hedging
 
     return {
@@ -57,19 +87,10 @@ def calculate_no_thresholds(symbol, start_price, current_price):
         'hedging': hedging,
         'positive_hedging': positive_hedging,
         'negative_hedging': negative_hedging,
-        'threshold_no': round(threshold_no, 2),
+        'threshold_no': round(threshold_no, 2) if threshold_no is not None else None,
         'pip_difference': pip_diff,
         'direction': direction
     }
-
-
-# def check_and_hedge(symbol):
-#     hedging = False
-#     if not symbol:
-#         return None
-#     trades = mt5.positions_get(symbol=symbol)
-#     if len(trades)>0:
-#         hedging = True
 
 
 def log_trade_decision(data):
