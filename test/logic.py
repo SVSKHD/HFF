@@ -146,13 +146,18 @@ def decide_trade(symbol, start_price, current_price):
     return result, current_data
 
 
+def decide_trade_logic(symbol, start_price, current_price):
+    obtained_pip_difference = pip_difference(symbol, start_price, current_price)
+    print(f"{symbol['symbol']} at {current_price} - pip-difference:{obtained_pip_difference} - threshold_no:{threshold_no(symbol, obtained_pip_difference['pip_difference'])} - thresholds_reached:{check_threshold_levels(threshold_no(symbol, obtained_pip_difference['pip_difference'])['threshold_no'])}")
+
+
 # Example usage
 if __name__ == "__main__":
     eur = {'symbol': 'EURUSD', 'pip_size': 0.0001, 'threshold': 15}
     start_price = 1.0000
     test_prices = [
        1.0000,
-       1.0015,
+       1.0013,
        1.0020,
        1.0025,
        1.0030,
@@ -165,12 +170,13 @@ if __name__ == "__main__":
     ]
 
     for p in test_prices:
-        result, state = decide_trade(eur, start_price, p)
-        print("Current Price:", p)
-        print("Result:", result)
-        print("State:", state)
-        print("-" * 50)
+        decide_trade_logic(eur, 1.0015, p)
+        # result, state = decide_trade_logic(eur, start_price, p)
+        # print("Current Price:", p)
+        # print("Result:", result)
+        # print("State:", state)
+        # print("-" * 50)
 
-    eurdb = get_symbol_data('EURUSD')
-    print("db", eurdb)
+    # eurdb = get_symbol_data('EURUSD')
+    # print("db", eurdb)
 # clear_all_keys()
