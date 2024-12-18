@@ -14,12 +14,12 @@ def fetch_price(symbol_data, fetch_type):
     day_of_week = current_date.strftime("%A")
     target_timestamp = None
 
-    if fetch_type == 'current':
-        # Ensure MT5 initialization
-        if not mt5.initialize():
-            print("MetaTrader5 initialization failed.")
-            return None
+    # Initialize MT5
+    if not mt5.initialize():
+        print("MetaTrader5 initialization failed.")
+        return None
 
+    if fetch_type == 'current':
         # Fetch current price for the symbol
         tick = mt5.symbol_info_tick(symbol_name)
         if tick:
@@ -52,24 +52,36 @@ def fetch_price(symbol_data, fetch_type):
         formatted_date = target_time.strftime("%Y-%m-%d %H:%M:%S")
         target_timestamp = int(target_time.timestamp())
 
-        # Ensure MT5 initialization
-        if not mt5.initialize():
-            print("MetaTrader5 initialization failed.")
-            return None
-
         # Fetch price data for the target timestamp
         ticks = mt5.copy_ticks_from(symbol_name, target_timestamp, 1, mt5.COPY_TICKS_INFO)
         if ticks is not None and len(ticks) > 0:
             start_price = ticks['bid'][0]  # Accessing the 'bid' field correctly
-            # print(f"Fetching start price for {symbol_name} at {formatted_date}: {start_price}")
             return start_price
         else:
             print(f"Failed to fetch start price for {symbol_name}. Ensure sufficient tick data is available.")
             return None
 
+    elif fetch_type == '5min':
+        # Define the timeframe (5 minutes) and number of bars
+        timeframe = mt5.TIMEFRAME_M5
+        num_bars = 1  # Fetch the most recent 5-minute candle
+
+        # Fetch 5-minute timeframe data
+        rates = mt5.copy_rates_from(symbol_name, timeframe, datetime.now(), num_bars)
+        if rates is not None and len(rates) > 0:
+            # Extract the last 5-minute candle close price
+            five_min_price = rates[-1]['close']
+            print(f"Fetching 5-minute close price for {symbol_name}: {five_min_price}")
+            return five_min_price
+        else:
+            print(f"Failed to fetch 5-minute data for {symbol_name}.")
+            return None
+
     else:
-        print("Invalid fetch type. Use 'current' or 'start'.")
+        print("Invalid fetch type. Use 'current', 'start', or '5min'.")
         return None
+
+
 
 
 eur = {'symbol': 'EURUSD', 'pip_size': 0.0001, 'threshold': 15}
