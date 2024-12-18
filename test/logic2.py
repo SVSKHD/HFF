@@ -1,6 +1,7 @@
 # import MetaTrader5 as mt5
 from db import save_symbol_data, update_symbol_data, get_symbol_data
-
+from utils import get_open_positions
+import asyncio
 
 def calculate_pip_difference(symbol, start_price, current_price):
     """
@@ -17,23 +18,23 @@ def calculate_pip_difference(symbol, start_price, current_price):
     return {'symbol': symbol['symbol'], 'pip_difference': rounded_pip_difference}
 
 
-def check_and_hedge(symbol):
-    """
-    Checks if there are active positions for the given symbol.
+# def check_and_hedge(symbol):
+#     """
+#     Checks if there are active positions for the given symbol.
+#
+#     Args:
+#         symbol (str): The trading symbol to check.
+#
+#     Returns:
+#         bool: True if positions exist, False otherwise.
+#     """
+#     if not symbol:
+#         return False
+#     trades = mt5.positions_get(symbol=symbol)
+#     return len(trades) > 0
 
-    Args:
-        symbol (str): The trading symbol to check.
 
-    Returns:
-        bool: True if positions exist, False otherwise.
-    """
-    if not symbol:
-        return False
-    trades = mt5.positions_get(symbol=symbol)
-    return len(trades) > 0
-
-
-def calculate_no_thresholds(symbol, start_price, current_price):
+async def calculate_no_thresholds(symbol, start_price, current_price):
     """
     Calculate thresholds and determine hedging status based on pip differences.
 
@@ -62,22 +63,43 @@ def calculate_no_thresholds(symbol, start_price, current_price):
 
     # Determine direction and threshold number
     threshold_no = pip_diff / symbol['threshold'] if symbol['threshold'] != 0 else None
-    direction = "positive" if pip_diff > 0 else "negative"
+    direction = 'neutral'
+    if pip_diff < 0:
+        direction = "positive"
+    elif pip_diff > 0:
+        direction = "negative"
 
     # Check for active positions
-    hedging = check_and_hedge(symbol['symbol'])
+    open_positions = await get_open_positions(symbol)
 
     # Initialize hedging flags
+    hedging = False
     positive_hedging = False
     negative_hedging = False
 
-    # Determine hedging conditions
-    if hedging and threshold_no is not None and 0 <= threshold_no <= 0.5:
-        print(f"Positive hedging condition met at threshold_no: {threshold_no}")
-        positive_hedging = True
-    elif hedging and threshold_no is not None and -0.5 <= threshold_no < 0:
-        print(f"Negative hedging condition met at threshold_no: {threshold_no}")
-        negative_hedging = True
+    # No positions logic
+    if open_positions['no_of_positions'] == 0:
+        print(f"No open positions for {symbol['symbol']}. No hedging applied.")
+        return {
+            'symbol': symbol['symbol'],
+            'hedging': False,
+            'positive_hedging': False,
+            'negative_hedging': False,
+            'threshold_no': round(threshold_no, 2) if threshold_no is not None else None,
+            'pip_difference': pip_diff,
+            'direction': direction
+        }
+
+    # Determine hedging conditions for exactly two positions
+    if open_positions['no_of_positions'] == 2 and threshold_no is not None:
+        if 0 <= threshold_no <= 0.5:
+            print(f"Positive hedging condition met at threshold_no: {threshold_no}")
+            hedging = True
+            positive_hedging = True
+        elif -0.5 <= threshold_no < 0:
+            print(f"Negative hedging condition met at threshold_no: {threshold_no}")
+            hedging = True
+            negative_hedging = True
 
     # Update the overall hedging flag based on positive/negative hedging
     hedging = positive_hedging or negative_hedging
@@ -99,8 +121,8 @@ def log_trade_decision(data):
         print(f"{key}: {value}")
 
 
-def decide_trade_and_thresholds(symbol, start_price, current_price):
-    symbol_threshold_data = calculate_no_thresholds(symbol, start_price, current_price)
+async def decide_trade_and_thresholds(symbol, start_price, current_price):
+    symbol_threshold_data = await calculate_no_thresholds(symbol, start_price, current_price)
 
     # Classify thresholds based on direction
     direction = symbol_threshold_data['direction']
@@ -228,4 +250,4 @@ start_price = 1.1000
 print("======================================gold positive prices======================================")
 for price in xau_positive:
     print("\nTesting with Price:")
-    decide_trade_and_thresholds(xau, xau_start, price)
+    asyncio.run(decide_trade_and_thresholds(xau, xau_start, price))

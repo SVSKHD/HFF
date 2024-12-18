@@ -38,20 +38,40 @@ async def connect_mt5():
 
 
 async def get_open_positions(symbol):
-    """Fetch open positions for a symbol and return position details consistently."""
-    symbol_name = symbol["symbol"]
-    positions = await asyncio.to_thread(mt5.positions_get, symbol=symbol_name)
-    print("positions", positions)
-
-    if not positions:
-        message = f"No positions exist for {symbol_name} at {datetime.now()}"
+    if not mt5.initialize():
+        message = f"MetaTrader5 initialization failed at {datetime.now()}"
         await send_discord_message_type(message, "error", True)
+    else:
+        """Fetch open positions for a symbol and return position details consistently."""
+        symbol_name = symbol["symbol"]
+        try:
+            positions = await asyncio.to_thread(mt5.positions_get, symbol=symbol_name)
+            print("positions", positions)
 
-    open_positions = {
-        "positions_exist": len(positions) > 0,
-        "no_of_positions": len(positions) if positions else 0
-    }
+            if positions is None:
+                message = f"Error fetching positions for {symbol_name} at {datetime.now()}"
+                await send_discord_message_type(message, "error", True)
+                return {
+                    "positions_exist": False,
+                    "no_of_positions": 0
+                }
 
-    print(open_positions)
-    return open_positions
+            if not positions:
+                message = f"No positions exist for {symbol_name} at {datetime.now()}"
+                await send_discord_message_type(message, "error", True)
 
+            open_positions = {
+                "positions_exist": len(positions) > 0,
+                "no_of_positions": len(positions) if positions else 0
+            }
+
+            print(open_positions)
+            return open_positions
+
+        except Exception as e:
+            message = f"An error occurred while fetching positions for {symbol_name}: {e}"
+            await send_discord_message_type(message, "error", True)
+            return {
+                "positions_exist": False,
+                "no_of_positions": 0
+            }
