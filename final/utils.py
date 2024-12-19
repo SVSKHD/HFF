@@ -1,4 +1,3 @@
-import asyncio
 import MetaTrader5 as mt5
 import logging
 from notifications import send_limited_message, send_discord_message_async, send_discord_message_type

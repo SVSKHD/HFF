@@ -1,0 +1,12 @@
+[default]
+DATABASE_URL = "redis://default:fyJ2dumlI9w7CIZrrLrpVzUQVoO2K9hZ@redis-15849.c10.us-east-1-2.ec2.redns.redis-cloud.com:15849"
+SECRET_KEY = "defaultsecret"
+
+ERROR_DISCORD = "https://discord.com/api/webhooks/1317121014819197022/ZXnGIFvH0yQKO93wcXWYxZI-cR76kyUkvB-kJKZbu4MQmqF0nHBGsre0lJrQInece4ro"
+GENERAL_DISCORD = "https://discord.com/api/webhooks/1317117382048878684/PN3gkLkUMJO0eeNik1AHG8Fxto0UzAh3BbmoFUSQubf405gLXmMffutYDGXOz3ZonF9r"
+TRADE_DISCORD = "https://discord.com/api/webhooks/1317117210816286833/vPc8tApVy0L-Na84I-XT0voH6j9ClHxPNM2fZiVkndnLH9MT_fM_WGo2tcWOkIUbXJ1I"
+SCHEDULER_DISCORD = "https://discord.com/api/webhooks/1317116906230255667/sjIE-xkxzTx8hE-TsSVKIkt6M_QZJbwmak4qUcXST7RiIPBdfOOB1W_yvRE-NlhOrUGw"
+
+[production]
+DATABASE_URL = "postgres://user:password@localhost:5432/production"
+SECRET_KEY = "prodsecret"
