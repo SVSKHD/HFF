@@ -8,7 +8,7 @@ from db import get_symbol_data
 from logic import decide_trade_and_thresholds
 from trade_place import place_order, close_trades_by_symbol
 
-def initiateTrade(symbol):
+def initiate_trade(symbol):
     symbol_name = symbol['symbol']
     lot_size = symbol['lot_size']
     symbol_data = get_symbol_data(symbol_name)
@@ -31,9 +31,9 @@ def initiateTrade(symbol):
         elif first_negative_threshold and -1.2 < threshold_no < -1:
             place_order(symbol, "sell", lot_size, hedging)
         elif second_positive_threshold:
-            close_trades_by_symbol(symbol_name)
+            close_trades_by_symbol(symbol)
         elif second_negative_threshold:
-            close_trades_by_symbol(symbol_name)
+            close_trades_by_symbol(symbol)
 
         if hedging:
             if positive_hedging:
@@ -46,7 +46,34 @@ def initiateTrade(symbol):
 
 
 
-# def monitorTrade():
+def monitor_trades(symbol):
+    symbol_name = symbol['symbol']
+    symbol_data = get_symbol_data(symbol_name)
+    lot_size = symbol['lot_size']
+
+    if symbol_data is not None:
+        threshold_no = symbol_data['threshold_no']
+        pip_difference = symbol_data['pip_difference']
+        direction = symbol_data['direction']
+        hedging = symbol_data['hedging']
+        positive_hedging = symbol_data['positive_hedging']
+        negative_hedging = symbol_data['negative_hedging']
+        second_positive_threshold = symbol_data['second_positive_threshold']
+        second_negative_threshold = symbol_data['second_negative_threshold']
+
+        if second_positive_threshold:
+            close_trades_by_symbol(symbol)
+        if second_negative_threshold:
+            close_trades_by_symbol(symbol)
+
+        if hedging:
+            if positive_hedging:
+                place_order(symbol, "buy", lot_size, hedging)
+            elif negative_hedging:
+                place_order(symbol, "sell", lot_size, hedging)
+
+
+
 
 
 
@@ -74,7 +101,7 @@ async def main():
 
                         # Decide trade and thresholds
                         await decide_trade_and_thresholds(symbol, start_price, current_price)
-                        initiateTrade(symbol)
+                        initiate_trade(symbol)
                     except Exception as e:
                         print(f"Error processing symbol {symbol['symbol']}: {e}")
             else:
@@ -87,6 +114,7 @@ async def main():
 
                         # Decide trade and thresholds
                         await decide_trade_and_thresholds(symbol, start_price, current_price)
+                        monitor_trades(symbol)
                     except Exception as e:
                         print(f"Error processing symbol {symbol['symbol']}: {e}")
 
