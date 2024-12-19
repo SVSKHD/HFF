@@ -3,7 +3,17 @@ from datetime import datetime
 import asyncio
 from utils import connect_mt5
 from fetch import fetch_price
+from db import get_symbol_data
 from logic2 import decide_trade_and_thresholds
+
+def initiateTrade(symbol):
+    symbol_name = symbol['symbol']
+    symbol_data = get_symbol_data(symbol_name)
+    print("symbol data from initiate trade", symbol_data)
+# def monitorTrade():
+
+
+
 
 async def main():
     while True:
@@ -27,7 +37,8 @@ async def main():
                         current_price = fetch_price(symbol, "current")
 
                         # Decide trade and thresholds
-                        decide_trade_and_thresholds(symbol, start_price, current_price)
+                        await decide_trade_and_thresholds(symbol, start_price, current_price)
+                        initiateTrade(symbol)
                     except Exception as e:
                         print(f"Error processing symbol {symbol['symbol']}: {e}")
             else:
@@ -39,12 +50,12 @@ async def main():
                         current_price = fetch_price(symbol, "current")
 
                         # Decide trade and thresholds
-                        decide_trade_and_thresholds(symbol, start_price, current_price)
+                        await decide_trade_and_thresholds(symbol, start_price, current_price)
                     except Exception as e:
                         print(f"Error processing symbol {symbol['symbol']}: {e}")
 
             # Sleep before the next iteration
-            await asyncio.sleep(60)
+            await asyncio.sleep(1)
 
         except Exception as main_exception:
             print(f"Unexpected error in main loop: {main_exception}")
