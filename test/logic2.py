@@ -149,7 +149,11 @@ async def decide_trade_and_thresholds(symbol, start_price, current_price):
         'negative_hedging': symbol_threshold_data['negative_hedging'],
         'direction': direction,
     }
-
+    symbol_data = get_symbol_data(symbol['symbol'])
+    if symbol_data is None:
+        save_symbol_data(symbol['symbol'], data)
+    else:
+        update_symbol_data(symbol['symbol'], data)
     # Logging results for debugging and validation
     print("Trade Decision Data:")
     print(f"Symbol: {data['symbol']}")
@@ -163,10 +167,6 @@ async def decide_trade_and_thresholds(symbol, start_price, current_price):
     print(f"Positive Hedging Activated: {data['positive_hedging']}")
     print(f"Negative Hedging Activated: {data['negative_hedging']}")
     print(f"Direction: {data['direction']}")
-
-    stored_data = get_symbol_data(symbol['symbol'])
-    if stored_data != data:  # Update only if data has changed
-        update_symbol_data(symbol['symbol'], data)
 
     # Logging for debugging
     log_trade_decision(data)
